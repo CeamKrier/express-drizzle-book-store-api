@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: local_api
+    ports:
+      - 3003:3003
+    environment:
+      PG_DB_URL: postgres://admin:password@local_postgres:5432/localdb
+
+  postgres:
+    image: postgres:15
+    container_name: local_postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: localdb
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U admin -d localdb']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
