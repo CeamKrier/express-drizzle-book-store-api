@@ -19,18 +19,23 @@ pnpm install
 docker compose -f docker-compose-db-only.yml up -d
 ```
 
-3. Run migrations:
-```bash
-pnpm db:migrate
-```
-
-4. Create a `.env` file:
+3. Create a `.env` file:
 
 ```
 PG_DB_URL=postgres://admin:password@localhost:5432/localdb
 ```
 
-5. Start development server:
+4. Generate migrations:
+```bash
+pnpm db:generate
+```
+
+5. Run migrations:
+```bash
+pnpm db:migrate
+```
+
+6. Start development server:
 ```bash
 pnpm dev
 ```
