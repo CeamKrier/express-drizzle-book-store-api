@@ -7,9 +7,12 @@ services:
       dockerfile: ./Dockerfile
     container_name: local_api
     ports:
-      - 3003:3003
+      - 3000:3000
     environment:
       PG_DB_URL: postgres://admin:password@local_postgres:5432/localdb
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   postgres:
     image: postgres:15
