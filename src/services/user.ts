@@ -10,7 +10,7 @@ export interface UserWithBooks {
   books: {
     past: {
       name: string;
-      userScore: string | null;
+      userScore: number | null;
     }[];
     present: {
       name: string;
@@ -57,7 +57,10 @@ export class UserService {
       id: user[0].id,
       name: user[0].name,
       books: {
-        past: pastBooks,
+        past: pastBooks.map((book) => ({
+          name: book.name,
+          userScore: book.userScore ? parseFloat(book.userScore) : null,
+        })),
         present: presentBooks,
       },
     };

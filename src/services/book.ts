@@ -2,6 +2,7 @@ import { eq, isNull, isNotNull, and, avg } from 'drizzle-orm';
 
 import { db } from '@/database';
 import { books, borrows, NewBook } from '@/database/schema';
+import { CustomError } from '@/lib/custom-error';
 
 interface BookDetail {
   id: number;
@@ -46,7 +47,7 @@ export class BookService {
   async borrowBook(userId: number, bookId: number) {
     const isBookAvailable = await this.isBookAvailable(bookId);
     if (!isBookAvailable) {
-      throw new Error('Book is not available');
+      throw new CustomError('Book is not available');
     }
 
     await db.insert(borrows).values({
@@ -66,7 +67,7 @@ export class BookService {
       .limit(1);
 
     if (!borrowRecord[0]) {
-      throw new Error('No active borrow record found');
+      throw new CustomError('No active borrow record found');
     }
 
     await db
