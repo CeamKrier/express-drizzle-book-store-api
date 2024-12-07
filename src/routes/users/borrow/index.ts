@@ -1,25 +1,17 @@
 import { Router } from 'express';
 
-import { handler } from '@/lib/request-helper';
+import { handler, validateParams } from '@/lib/request-helper';
 import { bookService } from '@/services/book';
+import { paramSchemas } from '@/lib/request-schemas';
 
 const router: Router = Router({ mergeParams: true });
 
 router.post(
   '/:bookId',
   handler(async (req, res) => {
-    const userId = req.params.userId;
-    const bookId = req.params.bookId;
+    const { userId, bookId } = validateParams(paramSchemas.userAndBookId, req.params);
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    if (!bookId) {
-      return res.status(400).json({ error: 'Book ID is required' });
-    }
-
-    await bookService.borrowBook(parseInt(userId), parseInt(bookId));
+    await bookService.borrowBook(userId, bookId);
 
     res.status(204).end();
   })

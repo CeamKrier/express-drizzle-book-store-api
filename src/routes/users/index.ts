@@ -1,7 +1,9 @@
 import { Router } from 'express';
 
-import { handler } from '@/lib/request-helper';
 import { userService } from '@/services/user';
+import { paramSchemas, bodySchemas } from '@/lib/request-schemas';
+import { handler, validateBody, validateParams } from '@/lib/request-helper';
+import { sharedResponses } from '@/lib/response-helper';
 
 import BorrowRouter from './borrow';
 import ReturnRouter from './return';
@@ -12,6 +14,7 @@ router.get(
   '/',
   handler(async (req, res) => {
     const users = await userService.listUsers();
+
     res.json(users);
   })
 );
@@ -19,16 +22,12 @@ router.get(
 router.get(
   '/:userId',
   handler(async (req, res) => {
-    const userId = req.params.userId;
+    const { userId } = validateParams(paramSchemas.userId, req.params);
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const user = await userService.getUserWithBooks(parseInt(userId));
+    const user = await userService.getUserWithBooks(userId);
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return sharedResponses.NOT_FOUND(res, 'User not found');
     }
 
     res.json(user);
@@ -38,13 +37,10 @@ router.get(
 router.post(
   '/',
   handler(async (req, res) => {
-    const name = req.body.name;
-
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
-    }
+    const { name } = validateBody(bodySchemas.createUser, req.body);
 
     await userService.createUser({ name: name });
+
     res.status(201).end();
   })
 );

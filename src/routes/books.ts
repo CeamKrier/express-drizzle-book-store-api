@@ -1,7 +1,9 @@
 import { Router } from 'express';
 
-import { handler } from '@/lib/request-helper';
+import { handler, validateBody, validateParams } from '@/lib/request-helper';
 import { bookService } from '@/services/book';
+import { sharedResponses } from '@/lib/response-helper';
+import { bodySchemas, paramSchemas } from '@/lib/request-schemas';
 
 const router: Router = Router();
 
@@ -16,16 +18,12 @@ router.get(
 router.get(
   '/:bookId',
   handler(async (req, res) => {
-    const bookId = req.params.bookId;
+    const { bookId } = validateParams(paramSchemas.bookId, req.params);
 
-    if (!bookId) {
-      return res.status(400).json({ error: 'Book ID is required' });
-    }
-
-    const book = await bookService.getBook(parseInt(bookId));
+    const book = await bookService.getBook(bookId);
 
     if (!book) {
-      return res.status(404).json({ error: 'Book not found' });
+      return sharedResponses.NOT_FOUND(res, 'Book not found');
     }
 
     res.json(book);
@@ -35,13 +33,10 @@ router.get(
 router.post(
   '/',
   handler(async (req, res) => {
-    const name = req.body.name;
-
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
-    }
+    const { name } = validateBody(bodySchemas.createBook, req.body);
 
     await bookService.createBook({ name: name });
+
     res.status(201).end();
   })
 );
