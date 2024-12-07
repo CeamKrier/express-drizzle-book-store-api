@@ -35,5 +35,5 @@ RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=builder /app/build ./build
 
-EXPOSE 3003
+EXPOSE 3000
 CMD ["pnpm", "start"]
