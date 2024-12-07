@@ -1,19 +1,6 @@
 version: '3.8'
 
 services:
-  api:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-    container_name: local_api
-    ports:
-      - 3000:3000
-    environment:
-      PG_DB_URL: postgres://admin:password@local_postgres:5432/localdb
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   postgres:
     image: postgres:15
     container_name: local_postgres
@@ -25,7 +12,6 @@ services:
       - 5432:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./src/database/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U admin -d localdb']
       interval: 5s
