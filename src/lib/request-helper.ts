@@ -1,4 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
+import { PostgresError } from 'postgres';
+
+import { sharedResponses } from './response-helper';
+import { CustomError } from './custom-error';
 
 export const handler = (
   fn: (req: Request, res: Response, next: NextFunction) => Promise<void | Response>
@@ -7,16 +12,29 @@ export const handler = (
     try {
       await fn(req, res, next);
     } catch (error) {
-      console.log(':::ERROR:::', error);
-      const message = (error as { message?: string })?.message || 'Internal server error';
-      // error might be JSON string, try to parse it
-      try {
-        const errorObject = JSON.parse(message);
-        res.status(400).json({ error: true, ...errorObject });
-      } catch {
-        // if it fails, return the error as is
-        res.status(500).json({ error: true, message });
+      if (error instanceof z.ZodError) {
+        return sharedResponses.BAD_REQUEST(
+          res,
+          error.errors.map((err) => err.message)
+        );
+      } else if (error instanceof PostgresError) {
+        // log
+        console.log('Failed to operate on database', error.detail);
+      } else if (error instanceof CustomError) {
+        const message = error.message;
+
+        return sharedResponses.BAD_REQUEST(res, [message]);
       }
+
+      return sharedResponses.INTERNAL_SERVER_ERROR(res);
     }
   };
 };
+
+export function validateBody<T extends z.ZodSchema>(schema: T, body: unknown): z.infer<T> {
+  return schema.parse(body);
+}
+
+export function validateParams<T extends z.ZodSchema>(schema: T, params: unknown): z.infer<T> {
+  return schema.parse(params);
+}
