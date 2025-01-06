@@ -1,8 +1,10 @@
 import { eq, isNull, isNotNull, and, avg } from 'drizzle-orm';
 
+import { userService } from '@/services/user';
 import { db } from '@/database';
 import { books, borrows, NewBook } from '@/database/schema';
 import { CustomError } from '@/lib/custom-error';
+import { logger, getTraceId } from '@/middleware/logger';
 
 interface BookDetail {
   id: number;
@@ -45,19 +47,36 @@ export class BookService {
   }
 
   async borrowBook(userId: number, bookId: number) {
+    const traceId = getTraceId();
+    logger.info('Borrowing book', { traceId, userId, bookId });
+
+    logger.info('Checking if user exists', { traceId, userId });
+    const userExists = await userService.doesUserExist(userId);
+    if (!userExists) {
+      throw new CustomError('User not found');
+    }
+
+    logger.info('Checking if book is available', { traceId, userId, bookId });
+
     const isBookAvailable = await this.isBookAvailable(bookId);
     if (!isBookAvailable) {
       throw new CustomError('Book is not available');
     }
+
+    logger.info('Inserting borrow record', { traceId, userId, bookId });
 
     await db.insert(borrows).values({
       userId,
       bookId,
       borrowedAt: new Date(),
     });
+
+    logger.info('Book borrowed successfully', { traceId, userId, bookId });
   }
 
   async returnBook(userId: number, bookId: number, score: number) {
+    const traceId = getTraceId();
+    logger.info('Returning book', { traceId, userId, bookId });
     const borrowRecord = await db
       .select()
       .from(borrows)
@@ -70,6 +89,8 @@ export class BookService {
       throw new CustomError('No active borrow record found');
     }
 
+    logger.info('Updating borrow record', { traceId, userId, bookId });
+
     await db
       .update(borrows)
       .set({
@@ -77,6 +98,8 @@ export class BookService {
         score: `${score}`,
       })
       .where(eq(borrows.id, borrowRecord[0].id));
+
+    logger.info('Book returned successfully', { traceId, userId, bookId });
   }
 
   private async isBookAvailable(bookId: number): Promise<boolean> {

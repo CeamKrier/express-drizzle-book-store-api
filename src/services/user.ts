@@ -3,6 +3,7 @@ import { eq, isNull, desc, and, isNotNull } from 'drizzle-orm';
 import { db } from '@/database';
 import { users, books, borrows } from '@/database/schema';
 import { NewUser } from '@/database/schema';
+import { logger } from '@/middleware/logger';
 
 export interface UserWithBooks {
   id: number;

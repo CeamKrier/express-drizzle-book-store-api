@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build:
@@ -8,11 +6,27 @@ services:
     container_name: local_api
     ports:
       - 3000:3000
+    networks:
+      - app_network
+      - monitoring_network
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
     environment:
       PG_DB_URL: postgres://admin:password@local_postgres:5432/localdb
+      LOKI_HOST: http://loki:3200
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_SERVICE_NAME: api-service
+      OTEL_RESOURCE_ATTRIBUTES: service.name=api-service,deployment.environment=development
     depends_on:
       postgres:
         condition: service_healthy
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_started
+      otel-collector:
+        condition: service_started
 
   postgres:
     image: postgres:15
@@ -23,6 +37,8 @@ services:
       POSTGRES_DB: localdb
     ports:
       - 5432:5432
+    networks:
+      - app_network
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./src/database/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -32,5 +48,40 @@ services:
       timeout: 5s
       retries: 5
 
+  prometheus:
+    extends:
+      file: docker-compose.monitoring.yml
+      service: prometheus
+
+  grafana:
+    extends:
+      file: docker-compose.monitoring.yml
+      service: grafana
+
+  loki:
+    extends:
+      file: docker-compose.logging.yml
+      service: loki
+
+  tempo:
+    extends:
+      file: docker-compose.logging.yml
+      service: tempo
+
+  otel-collector:
+    extends:
+      file: docker-compose.logging.yml
+      service: otel-collector
+
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  tempo_data:
+
+networks:
+  app_network:
+    name: app_network
+  monitoring_network:
+    name: monitoring_network
