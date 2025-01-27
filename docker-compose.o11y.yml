@@ -1,0 +1,56 @@
+name: o11y
+
+services:
+  loki:
+    image: grafana/loki:3.3.2
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./configs/loki-config.yml:/etc/loki/config.yml
+      - loki-data:/data/loki
+    ports:
+      - '3100:3100'
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./configs/rules:/etc/prometheus/rules
+      - prometheus-data:/prometheus
+    ports:
+      - '9090:9090'
+
+  tempo:
+    image: grafana/tempo:2.7.0
+    command: -config.file=/etc/tempo/config.yml
+    volumes:
+      - ./configs/tempo-config.yml:/etc/tempo/config.yml
+
+    ports:
+      - '3200:3200' # tempo
+      - '4317:4317' # OTLP grpc
+      - '4318:4318' # OTLP http
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    ports:
+      - '3333:3000'
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./configs/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    volumes:
+      - ./configs/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - '9093:9093'
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  tempo-data:
+
+networks:
+  observability:
+    external: true

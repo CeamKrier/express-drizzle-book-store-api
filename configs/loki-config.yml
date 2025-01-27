@@ -1,0 +1,62 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+
+limits_config:
+  allow_structured_metadata: true
+
+common:
+  path_prefix: /tmp/loki
+  storage:
+    filesystem:
+      chunks_directory: /tmp/loki/chunks
+      rules_directory: /tmp/loki/rules
+  replication_factor: 1
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+
+pattern_ingester:
+  enabled: true
+analytics:
+  reporting_enabled: false # default: true
+tracing:
+  enabled: true # default: false
+
+schema_config:
+  configs:
+    - from: 2024-01-01 # Update this date to your actual cutover date
+      store: tsdb # Changed from boltdb-shipper
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+ruler:
+  alertmanager_url: http://alertmanager:9093
+  storage:
+    type: local
+    local:
+      directory: /tmp/loki/rules
+  rule_path: /tmp/loki/rules
+  ring:
+    kvstore:
+      store: inmemory
+  enable_api: true
+  enable_alertmanager_v2: true
+# rules:
+#   - name: error_logs
+#     rules:
+#       - alert: HighErrorRate
+#         expr: |
+#           sum(rate({app="your-app"} |= "error" [5m])) > 10
+#         for: 5m
+#         labels:
+#           severity: critical
+#         annotations:
+#           summary: High error rate in logs
+#           description: More than 10 errors per second in the last 5m
