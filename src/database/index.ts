@@ -2,7 +2,6 @@ import postgres from 'postgres';
 import { trace } from '@opentelemetry/api';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import 'dotenv/config';
-import { logger } from '@/logger';
 
 const connectionString = process.env.PG_DB_URL;
 
@@ -20,15 +19,24 @@ const client = postgres(connectionString, {
 export const db = drizzle(client, {
   logger: {
     logQuery(query, params) {
-      logger.info('Executing query', { query, params });
-      const span = trace.getActiveSpan();
-      if (span) {
-        span.setAttributes({
-          'db.query': query,
-          'db.params': JSON.stringify(params),
-          'db.operation': getQueryOperation(query),
-        });
-      }
+      const tracer = trace.getTracer('database-operations');
+
+      return tracer.startActiveSpan('database.query', (span) => {
+        try {
+          // Add detailed attributes to the span
+          span.setAttributes({
+            'db.system': 'postgresql',
+            'db.statement': query,
+            'db.operation': getQueryOperation(query),
+            'db.params': JSON.stringify(params),
+          });
+
+          return span;
+        } finally {
+          // Ensure span is ended after query execution
+          span.end();
+        }
+      });
     },
   },
 });
